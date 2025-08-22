@@ -1,10 +1,13 @@
-
+#streaming data 
+# Kafka, Schema Registry, Flink JobManager
+# Flink TaskManager,  Redis, Kafka UI, Redis Commander
 
 services:
   # ===== KAFKA (메시지 브로커) =====
   kafka:
     image: apache/kafka:3.9.1
     container_name: crypto-kafka
+    user: "1000:1000"  # 권한 문제 해결
     ports:
       - "9092:9092"
       - "9093:9093"
@@ -25,9 +28,9 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       
       # 로그 설정
-      KAFKA_LOG_DIRS: /tmp/kraft-combined-logs
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
     volumes:
-      - kafka_data:/tmp/kraft-combined-logs
+      - kafka_data:/var/lib/kafka/data
     healthcheck:
       test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:9092 --list"]
       interval: 10s
