@@ -1,0 +1,146 @@
+
+
+services:
+  # ===== KAFKA (메시지 브로커) =====
+  kafka:
+    image: apache/kafka:3.9.1
+    container_name: crypto-kafka
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    environment:
+      # KRaft 모드 설정 (ZooKeeper 없음)
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      
+      # 단일 노드 클러스터 설정
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      
+      # 로그 설정
+      KAFKA_LOG_DIRS: /tmp/kraft-combined-logs
+    volumes:
+      - kafka_data:/tmp/kraft-combined-logs
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:9092 --list"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ===== SCHEMA REGISTRY (스키마 관리) =====
+  schema-registry:
+    image: confluentinc/cp-schema-registry:7.7.1
+    container_name: crypto-schema-registry
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - "8081:8081"
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: kafka:9092
+      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+      SCHEMA_REGISTRY_KAFKASTORE_TOPIC: _schemas
+      SCHEMA_REGISTRY_KAFKASTORE_TOPIC_REPLICATION_FACTOR: 1
+      SCHEMA_REGISTRY_DEBUG: "true"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8081/subjects || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ===== REDIS (계산 결과 저장) =====
+  redis:
+    image: redis:7.2-alpine
+    container_name: crypto-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ===== FLINK JOB MANAGER (스트림 처리 마스터) =====
+  flink-jobmanager:
+    image: flink:2.1.0-scala_2.12-java11
+    container_name: crypto-flink-jobmanager
+    depends_on:
+      kafka:
+        condition: service_healthy
+      schema-registry:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "8082:8081"  # Flink Web UI
+    environment:
+      JOB_MANAGER_RPC_ADDRESS: flink-jobmanager
+    command: jobmanager
+    volumes:
+      - flink_data:/opt/flink/log
+
+  # ===== FLINK TASK MANAGER (스트림 처리 워커) =====
+  flink-taskmanager:
+    image: flink:2.1.0-scala_2.12-java11
+    container_name: crypto-flink-taskmanager
+    depends_on:
+      - flink-jobmanager
+    environment:
+      JOB_MANAGER_RPC_ADDRESS: flink-jobmanager
+    command: taskmanager
+    volumes:
+      - flink_data:/opt/flink/log
+
+  # ===== KAFKA UI (개발 도구 - Kafka 모니터링) =====
+  kafka-ui:
+    image: kafbat/kafka-ui:main
+    container_name: crypto-kafka-ui
+    depends_on:
+      kafka:
+        condition: service_healthy
+      schema-registry:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      DYNAMIC_CONFIG_ENABLED: "true"
+      KAFKA_CLUSTERS_0_NAME: crypto-cluster
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      KAFKA_CLUSTERS_0_SCHEMAREGISTRY: http://schema-registry:8081
+
+  # ===== REDIS COMMANDER (개발 도구 - Redis 모니터링) =====
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: crypto-redis-commander
+    depends_on:
+      redis:
+        condition: service_healthy
+    ports:
+      - "8083:8081"
+    environment:
+      REDIS_HOSTS: local:redis:6379
+
+# ===== VOLUMES (데이터 지속성) =====
+volumes:
+  kafka_data:
+    driver: local
+  redis_data:
+    driver: local
+  flink_data:
+    driver: local
+
+# ===== NETWORKS =====
+networks:
+  default:
+    name: crypto-trading-network
