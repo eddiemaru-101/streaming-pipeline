@@ -5,17 +5,21 @@ services:
     container_name: crypto-kafka
     ports:
       - "9092:9092"
-      - "9093:9093"  # Controller 포트 필수!
+      - "9093:9093"  # Host 접속용 포트
+      - "9094:9094"  # Controller 포트
     environment:
+      # 타임존 설정
+      TZ: Asia/Seoul
+      
       # KRaft 모드 설정 (ZooKeeper 없음)
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
-      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_HOST://0.0.0.0:9093,CONTROLLER://0.0.0.0:9094
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:9093
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9094
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       
       # 단일 노드 클러스터 설정
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
@@ -27,11 +31,15 @@ services:
       KAFKA_REPLICA_FETCH_MAX_BYTES: 10485760    # 10MB
       KAFKA_FETCH_MESSAGE_MAX_BYTES: 10485760    # 10MB
       KAFKA_SOCKET_REQUEST_MAX_BYTES: 104857600  # 100MB
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
     healthcheck:
-      test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:9092 --list"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
   # ===== SCHEMA REGISTRY (스키마 관리) =====
   schema-registry:
@@ -43,12 +51,16 @@ services:
     ports:
       - "8081:8081"
     environment:
+      TZ: Asia/Seoul
       SCHEMA_REGISTRY_HOST_NAME: schema-registry
       SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: kafka:9092
       SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
       SCHEMA_REGISTRY_KAFKASTORE_TOPIC: _schemas
       SCHEMA_REGISTRY_KAFKASTORE_TOPIC_REPLICATION_FACTOR: 1
       SCHEMA_REGISTRY_DEBUG: "true"
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8081/subjects || exit 1"]
       interval: 10s
@@ -61,9 +73,13 @@ services:
     container_name: crypto-redis
     ports:
       - "6379:6379"
+    environment:
+      TZ: Asia/Seoul
     command: redis-server --appendonly yes
     volumes:
       - redis_data:/data
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -84,10 +100,13 @@ services:
     ports:
       - "8082:8081"  # Flink Web UI
     environment:
+      TZ: Asia/Seoul
       JOB_MANAGER_RPC_ADDRESS: flink-jobmanager
     command: jobmanager
     volumes:
       - flink_data:/opt/flink/log
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
 
   # ===== FLINK TASK MANAGER (스트림 처리 워커) =====
   flink-taskmanager:
@@ -96,10 +115,13 @@ services:
     depends_on:
       - flink-jobmanager
     environment:
+      TZ: Asia/Seoul
       JOB_MANAGER_RPC_ADDRESS: flink-jobmanager
     command: taskmanager
     volumes:
       - flink_data:/opt/flink/log
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
 
   # ===== KAFKA UI (개발 도구 - Kafka 모니터링) =====
   kafka-ui:
@@ -113,10 +135,14 @@ services:
     ports:
       - "8080:8080"
     environment:
+      TZ: Asia/Seoul
       DYNAMIC_CONFIG_ENABLED: "true"
       KAFKA_CLUSTERS_0_NAME: crypto-cluster
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
       KAFKA_CLUSTERS_0_SCHEMAREGISTRY: http://schema-registry:8081
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
 
   # ===== REDIS COMMANDER (개발 도구 - Redis 모니터링) =====
   redis-commander:
@@ -128,7 +154,11 @@ services:
     ports:
       - "8083:8081"
     environment:
+      TZ: Asia/Seoul
       REDIS_HOSTS: local:redis:6379
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
 
 # ===== VOLUMES (데이터 지속성) =====
 volumes:
