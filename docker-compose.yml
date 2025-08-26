@@ -1,7 +1,7 @@
 services:
   # ===== KAFKA (메시지 브로커) =====
   kafka:
-    image: apache/kafka:3.9.1
+    image: apache/kafka:3.8.1
     container_name: crypto-kafka
     ports:
       - "9092:9092"
@@ -43,7 +43,7 @@ services:
 
   # ===== SCHEMA REGISTRY (스키마 관리) =====
   schema-registry:
-    image: confluentinc/cp-schema-registry:7.7.1
+    image: confluentinc/cp-schema-registry:7.6.1
     container_name: crypto-schema-registry
     depends_on:
       kafka:
@@ -88,7 +88,7 @@ services:
 
   # ===== FLINK JOB MANAGER (스트림 처리 마스터) =====
   flink-jobmanager:
-    image: flink:2.1.0-scala_2.12-java11
+    image: flink:1.19.1-scala_2.12-java11
     container_name: crypto-flink-jobmanager
     depends_on:
       kafka:
@@ -110,7 +110,7 @@ services:
 
   # ===== FLINK TASK MANAGER (스트림 처리 워커) =====
   flink-taskmanager:
-    image: flink:2.1.0-scala_2.12-java11
+    image: flink:1.19.1-scala_2.12-java11
     container_name: crypto-flink-taskmanager
     depends_on:
       - flink-jobmanager
