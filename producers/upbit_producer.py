@@ -49,15 +49,16 @@ class UpbitKafkaProducer:
                         message = await websocket.recv()
                         data = json.loads(message)
                         
-                        # 데이터 가공
+                        # 데이터 가공 (UI 친화적으로 간소화)
                         processed_data = {
                             'exchange': 'upbit',
                             'symbol': data.get('code', 'Unknown'),
-                            'price': float(data.get('trade_price', 0)),
-                            'volume': float(data.get('acc_trade_volume_24h', 0)),
-                            'change_rate': float(data.get('signed_change_rate', 0)) * 100,
-                            'timestamp': datetime.now().isoformat(),
-                            'raw_data': data
+                            'price': round(float(data.get('trade_price', 0)), 2),
+                            'volume_24h': round(float(data.get('acc_trade_volume_24h', 0)), 2),
+                            'change_rate': round(float(data.get('signed_change_rate', 0)) * 100, 2),
+                            'timestamp': datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ'),
+                            'high_price': round(float(data.get('high_price', 0)), 2),
+                            'low_price': round(float(data.get('low_price', 0)), 2)
                         }
                         
                         # Kafka로 전송

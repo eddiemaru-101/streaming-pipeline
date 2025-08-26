@@ -39,20 +39,22 @@ class BinanceKafkaProducer:
                         message = await websocket.recv()
                         data = json.loads(message)
                         
-                        # 데이터 가공
-                        processed_data = {
-                            'exchange': 'binance',
-                            'symbol': data.get('s', 'Unknown'),  # BTCUSDT
-                            'price': float(data.get('c', 0)),    # 현재가
-                            'volume': float(data.get('v', 0)),   # 24h 볼륨
-                            'change_rate': float(data.get('P', 0)),  # 변화율
-                            'timestamp': datetime.now().isoformat(),
-                            'raw_data': data
-                        }
-                        
                         # USD를 KRW로 대략 변환 (실시간 환율 적용하면 더 정확)
                         usd_to_krw = 1320  # 임시 환율
-                        processed_data['price_krw'] = processed_data['price'] * usd_to_krw
+                        price_usd = float(data.get('c', 0))
+                        
+                        # 데이터 가공 (UI 친화적으로 간소화)
+                        processed_data = {
+                            'exchange': 'binance',
+                            'symbol': data.get('s', 'Unknown'),
+                            'price': round(price_usd, 4),
+                            'price_krw': round(price_usd * usd_to_krw, 2),
+                            'volume_24h': round(float(data.get('v', 0)), 2),
+                            'change_rate': round(float(data.get('P', 0)), 2),
+                            'timestamp': datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ'),
+                            'high_price': round(float(data.get('h', 0)), 4),
+                            'low_price': round(float(data.get('l', 0)), 4)
+                        }
                         
                         # Kafka로 전송
                         self.producer.send(self.topic, processed_data)
