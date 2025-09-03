@@ -6,7 +6,7 @@ async def binance_websocket():
     uri = "wss://stream.binance.com:9443/ws/btcusdt@ticker"
     
     async with websockets.connect(uri) as websocket:
-        print("🔗 바이낸스 WebSocket 연결!")
+        print("Binance WebSocket Connected!")
         
         for i in range(5):
             message = await websocket.recv()
