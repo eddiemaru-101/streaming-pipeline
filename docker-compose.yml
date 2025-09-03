@@ -90,6 +90,13 @@ services:
   flink-jobmanager:
     image: flink:1.19.1-scala_2.12-java11
     container_name: crypto-flink-jobmanager
+    # Maven 설치를 위한 커맨드 추가
+    command: >
+      bash -c "
+      apt-get update && 
+      apt-get install -y maven && 
+      /docker-entrypoint.sh jobmanager
+      "
     depends_on:
       kafka:
         condition: service_healthy
@@ -102,7 +109,6 @@ services:
     environment:
       TZ: Asia/Seoul
       JOB_MANAGER_RPC_ADDRESS: flink-jobmanager
-    command: jobmanager
     volumes:
       - flink_data:/opt/flink/log
       - /etc/localtime:/etc/localtime:ro
