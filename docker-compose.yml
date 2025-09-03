@@ -86,16 +86,17 @@ services:
       timeout: 3s
       retries: 5
 
-  # ===== FLINK JOB MANAGER (스트림 처리 마스터) =====
+  # ===== FLINK JOB MANAGER (스트림 처리 마스터) =====  
   flink-jobmanager:
-    image: flink:1.19.1-scala_2.12-java11
+    image: maven:3.8-openjdk-11
     container_name: crypto-flink-jobmanager
-    # Maven 설치를 위한 커맨드 추가
+    # Maven이 포함된 베이스 이미지에서 Flink 설치 후 실행
     command: >
       bash -c "
-      apt-get update && 
-      apt-get install -y maven && 
-      /docker-entrypoint.sh jobmanager
+      wget -q https://archive.apache.org/dist/flink/flink-1.19.1/flink-1.19.1-bin-scala_2.12.tgz &&
+      tar -xzf flink-1.19.1-bin-scala_2.12.tgz &&
+      mv flink-1.19.1 /opt/flink &&
+      /opt/flink/bin/jobmanager.sh start-foreground
       "
     depends_on:
       kafka:
@@ -116,14 +117,20 @@ services:
 
   # ===== FLINK TASK MANAGER (스트림 처리 워커) =====
   flink-taskmanager:
-    image: flink:1.19.1-scala_2.12-java11
+    image: maven:3.8-openjdk-11
     container_name: crypto-flink-taskmanager
     depends_on:
       - flink-jobmanager
     environment:
       TZ: Asia/Seoul
       JOB_MANAGER_RPC_ADDRESS: flink-jobmanager
-    command: taskmanager
+    command: >
+      bash -c "
+      wget -q https://archive.apache.org/dist/flink/flink-1.19.1/flink-1.19.1-bin-scala_2.12.tgz &&
+      tar -xzf flink-1.19.1-bin-scala_2.12.tgz &&
+      mv flink-1.19.1 /opt/flink &&
+      /opt/flink/bin/taskmanager.sh start-foreground
+      "
     volumes:
       - flink_data:/opt/flink/log
       - /etc/localtime:/etc/localtime:ro
