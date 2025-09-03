@@ -35,6 +35,7 @@ public class PremiumCalculatorJob {
     private static final String KAFKA_SERVERS = "kafka:9092";
     private static final String REDIS_HOST = "redis";
     private static final int REDIS_PORT = 6379;
+    private static final double USD_TO_KRW_RATE = 1320.0;  // 고정 환율
     
     public static void main(String[] args) throws Exception {
         
@@ -164,6 +165,14 @@ public class PremiumCalculatorJob {
         public void invoke(PriceData value, Context context) throws Exception {
             try (Jedis jedis = jedisPool.getResource()) {
                 String key = prefix + ":" + value.getNormalizedSymbol();
+                
+                // Binance 데이터인 경우 환율 적용
+                if ("binance".equals(value.getExchange())) {
+                    double krwPrice = value.getPrice() * USD_TO_KRW_RATE;
+                    value.setPriceKrw(krwPrice);  // KRW 가격 설정
+                    System.out.println("💱 환율 적용: $" + value.getPrice() + " → " + Math.round(krwPrice) + "원");
+                }
+                
                 String jsonValue = objectMapper.writeValueAsString(value);
                 
                 // TTL 60초로 설정

@@ -57,8 +57,7 @@ class BinanceKafkaProducer:
                         message = await websocket.recv()
                         data = json.loads(message)
                         
-                        # USD를 KRW로 대략 변환 (실시간 환율 적용하면 더 정확)
-                        usd_to_krw = 1320  # 임시 환율
+                        # 데이터 가공 (USD 가격 그대로 저장, 환율 변환은 Flink에서 처리)
                         price_usd = float(data.get('c', 0))
                         
                         # 데이터 가공 (UI 친화적으로 간소화)
@@ -66,7 +65,6 @@ class BinanceKafkaProducer:
                             'exchange': 'binance',
                             'symbol': data.get('s', 'Unknown'),
                             'price': round(price_usd, 4),
-                            'price_krw': round(price_usd * usd_to_krw, 2),
                             'volume_24h': round(float(data.get('v', 0)), 2),
                             'change_rate': round(float(data.get('P', 0)), 2),
                             'timestamp': datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ'),
