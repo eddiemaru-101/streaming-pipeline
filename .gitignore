@@ -1,1 +1,6 @@
 venv
+flink-jobs\.idea
+
+flink-jobs\target
+flink-jobs\dependency-reduced-pom.xml
+flink-jobs;C
