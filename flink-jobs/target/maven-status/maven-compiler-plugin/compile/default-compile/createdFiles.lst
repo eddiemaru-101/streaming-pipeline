@@ -1,7 +1,0 @@
-com\crypto\PremiumCalculatorJob$JsonToPriceDataMapper.class
-com\crypto\PriceData.class
-com\crypto\PremiumCalculatorJob.class
-com\crypto\PremiumResult.class
-com\crypto\PremiumCalculatorJob$RedisSink.class
-com\crypto\PremiumCalculatorJob$PremiumCalculatorFunction.class
-com\crypto\PremiumCalculatorJob$RedisCacheSink.class

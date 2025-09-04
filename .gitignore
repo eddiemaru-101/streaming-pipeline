@@ -1,6 +1,20 @@
-venv
-flink-jobs\.idea
+# Python
+venv/
+__pycache__/
+*.pyc
 
-flink-jobs\target
-flink-jobs\dependency-reduced-pom.xml
-flink-jobs;C
+# IDE files  
+.idea/
+*.iml
+.vscode/
+
+# Maven build
+target/
+dependency-reduced-pom.xml
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
