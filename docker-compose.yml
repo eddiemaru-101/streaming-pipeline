@@ -90,10 +90,7 @@ services:
   flink-jobmanager:
     image: flink:1.19.1
     container_name: crypto-flink-jobmanager
-    networks:
-      default:
-        aliases:
-          - flink-jobmanager
+    hostname: crypto-flink-jobmanager
     command: jobmanager
     depends_on:
       kafka:
@@ -118,7 +115,7 @@ services:
     command: taskmanager
     environment:
       TZ: Asia/Seoul
-      JOB_MANAGER_RPC_ADDRESS: flink-jobmanager
+      JOB_MANAGER_RPC_ADDRESS: crypto-flink-jobmanager
     volumes:
       - flink_data:/opt/flink/log
 
