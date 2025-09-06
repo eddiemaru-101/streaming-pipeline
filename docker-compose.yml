@@ -4,7 +4,7 @@ services:
     image: apache/kafka:3.8.1
     container_name: crypto-kafka
     ports:
-      - "9092:9092"
+      - "9092:9092"  # 컨테이너 간 통신용
       - "9093:9093"  # Host 접속용 포트
       - "9094:9094"  # Controller 포트
     environment:
